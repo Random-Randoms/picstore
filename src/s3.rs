@@ -14,6 +14,10 @@ pub trait S3Client {
     async fn download_picture(&self, picture: i64) -> anyhow::Result<bytes::Bytes>;
 
     async fn create_buckets(&self) -> anyhow::Result<()>;
+
+    async fn delete_picture(&self, picture: i64) -> anyhow::Result<()>;
+
+    async fn update_picture<T: Read>(&self, picture: i64, data: T) -> anyhow::Result<()>;
 }
 
 impl S3Client for MinioClient {
@@ -50,5 +54,18 @@ impl S3Client for MinioClient {
             self.create_bucket(BUCKET)?.build().send().await?;
             Ok(())
         }
+    }
+
+    async fn delete_picture(&self, picture: i64) -> anyhow::Result<()> {
+        self.delete_object(BUCKET, picture_name(picture))?
+            .build()
+            .send()
+            .await?;
+        Ok(())
+    }
+
+    async fn update_picture<T: Read>(&self, picture: i64, data: T) -> anyhow::Result<()> {
+        self.delete_picture(picture).await?;
+        self.upload_picture(picture, data).await
     }
 }

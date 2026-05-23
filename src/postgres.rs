@@ -14,6 +14,7 @@ pub trait PgClient {
     async fn add_user(&self, user: &str) -> anyhow::Result<()>;
     async fn add_scope(&self, scope: &str) -> anyhow::Result<()>;
     async fn add_user_scope(&self, user: &str, scope: &str) -> anyhow::Result<()>;
+    async fn delete_picture(&self, picture: i64) -> anyhow::Result<()>;
 }
 
 impl PgClient for tokio_postgres::Client {
@@ -82,5 +83,11 @@ impl PgClient for tokio_postgres::Client {
         .first()
         .and_then(|rw| rw.get(0))
         .ok_or(anyhow!("Unexpected pg answer"))
+    }
+
+    async fn delete_picture(&self, picture: i64) -> anyhow::Result<()> {
+        self.query(include_str!("sql/delete-picture.sql"), &[&picture])
+            .await?;
+        Ok(())
     }
 }
