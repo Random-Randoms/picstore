@@ -2,6 +2,8 @@ mod form;
 mod postgres;
 mod s3;
 
+use std::env;
+
 use form::{
     download::Form as DownloadForm, update::Form as UpdateForm, upload::Form as UploadForm,
 };
@@ -170,7 +172,7 @@ async fn catch_main() -> anyhow::Result<()> {
     info!("hello");
 
     let (pg_client, pg_connection) = tokio_postgres::connect(
-        "host=postgres user=postgres password=postgres dbname=postgres",
+        format!("host=postgres user=postgres password=postgres dbname=postgres port={}", env::var("PG_PORT")?).as_str(),
         NoTls,
     )
     .await?;
@@ -178,7 +180,7 @@ async fn catch_main() -> anyhow::Result<()> {
     info!("postgres connected");
 
     let minio_client = MinioClient::new(
-        "http://minio:9000".parse::<BaseUrl>()?,
+        format!("http://minio:{}", env::var("MINIO_API_PORT")?).parse::<BaseUrl>()?,
         Some(StaticProvider::new("minioadmin", "minioadmin", None)),
         None,
         None,
