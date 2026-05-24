@@ -16,8 +16,8 @@ use actix_web::{
 };
 use actix_web_metrics::ActixWebMetricsBuilder;
 use log::{error, info};
-use minio::s3::{MinioClient, creds::StaticProvider, http::BaseUrl};
 use metrics_exporter_prometheus::PrometheusBuilder;
+use minio::s3::{MinioClient, creds::StaticProvider, http::BaseUrl};
 use tokio_postgres::{Client as PostgresClient, NoTls};
 
 #[get("/")]
@@ -177,8 +177,7 @@ async fn catch_main() -> anyhow::Result<()> {
 
     info!("install prometheus builder");
 
-    let metrics = ActixWebMetricsBuilder::new()
-        .build();
+    let metrics = ActixWebMetricsBuilder::new().build();
 
     info!("create metrics");
 
