@@ -2,12 +2,16 @@ mod form;
 mod postgres;
 mod s3;
 
-use form::{download::Form as DownloadForm, upload::Form as UploadForm};
+use form::{
+    download::Form as DownloadForm, update::Form as UpdateForm, upload::Form as UploadForm,
+};
 use postgres::PgClient;
 use s3::S3Client;
 
 use actix_multipart::form::MultipartForm;
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, middleware::Logger, post, web};
+use actix_web::{
+    App, HttpResponse, HttpServer, Responder, delete, get, middleware::Logger, patch, post, web,
+};
 use log::{error, info};
 use minio::s3::{MinioClient, creds::StaticProvider, http::BaseUrl};
 use tokio_postgres::{Client as PostgresClient, NoTls};
@@ -72,6 +76,58 @@ async fn upload_picture(
     HttpResponse::Ok().body(format!("New picture id is {picture}"))
 }
 
+#[patch("/pictures")]
+async fn update_picture(
+    pg_client: web::Data<PostgresClient>,
+    minio_client: web::Data<MinioClient>,
+    MultipartForm(req): MultipartForm<UpdateForm>,
+) -> impl Responder {
+    info!("picture update");
+    let (user, scope_name, picture) = req.json.into_inner().into_parts();
+    let valid = match pg_client
+        .user_scope_picture_valid(user.as_str(), scope_name.as_str(), picture)
+        .await
+    {
+        Err(e) => return HttpResponse::InternalServerError().body(format!("Err: {e}")),
+        Ok(valid) => valid,
+    };
+    if !valid {
+        return HttpResponse::Forbidden().body("No such picture or such user in that scope");
+    }
+    if let Err(e) = minio_client.update_picture(picture, req.file.file).await {
+        return HttpResponse::InternalServerError()
+            .body(format!("picture update failed with error {e}"));
+    }
+    HttpResponse::Ok().body(format!("Picture {picture} updated successfully"))
+}
+
+#[delete("/pictures")]
+async fn delete_picture(
+    pg_client: web::Data<PostgresClient>,
+    minio_client: web::Data<MinioClient>,
+    req: web::Json<DownloadForm>,
+) -> impl Responder {
+    info!("picture delete");
+    let (user_name, scope_name, picture) = req.into_inner().into_parts();
+    let valid = match pg_client
+        .user_scope_picture_valid(user_name.as_str(), scope_name.as_str(), picture)
+        .await
+    {
+        Err(e) => return HttpResponse::InternalServerError().body(format!("Err: {e}")),
+        Ok(valid) => valid,
+    };
+    if !valid {
+        return HttpResponse::Forbidden().body("No such picture or such user in that scope");
+    }
+    let results = (
+        pg_client.delete_picture(picture).await,
+        minio_client.delete_picture(picture).await,
+    );
+    match results {
+        (Ok(()), Ok(())) => HttpResponse::Ok().body("picture deleted"),
+        _ => HttpResponse::InternalServerError().body("internal error"),
+    }
+}
 #[post("/users/{name}")]
 async fn add_user(client: web::Data<PostgresClient>, name: web::Path<String>) -> impl Responder {
     info!("add user");
@@ -110,6 +166,8 @@ async fn default() -> impl Responder {
 
 async fn catch_main() -> anyhow::Result<()> {
     env_logger::init();
+
+    info!("hello");
 
     let (pg_client, pg_connection) = tokio_postgres::connect(
         "host=postgres user=postgres password=postgres dbname=postgres",
@@ -153,6 +211,8 @@ async fn catch_main() -> anyhow::Result<()> {
             .service(index)
             .service(download_picture)
             .service(upload_picture)
+            .service(update_picture)
+            .service(delete_picture)
             .service(add_user)
             .service(add_scope)
             .service(add_user_scope)

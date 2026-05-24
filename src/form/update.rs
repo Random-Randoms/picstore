@@ -5,11 +5,12 @@ use serde::Deserialize;
 pub struct Data {
     user: String,
     scope: String,
+    picture: i64,
 }
 
 impl Data {
-    pub fn into_parts(self) -> (String, String) {
-        (self.user, self.scope)
+    pub fn into_parts(self) -> (String, String, i64) {
+        (self.user, self.scope, self.picture)
     }
 }
 

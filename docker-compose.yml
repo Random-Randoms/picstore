@@ -23,11 +23,12 @@ services:
       - minio-data:/var/lib/minio/data
 
   backend:
-    image: picstore-back
+    image: randomrandoms/picstore-back
     ports: 
       - "3000:3000"
     depends_on:
       - postgres
+      - minio
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

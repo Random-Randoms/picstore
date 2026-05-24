@@ -1,0 +1,1 @@
+delete from picture where id = $1
