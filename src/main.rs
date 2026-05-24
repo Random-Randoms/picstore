@@ -14,7 +14,9 @@ use actix_multipart::form::MultipartForm;
 use actix_web::{
     App, HttpResponse, HttpServer, Responder, delete, get, middleware::Logger, patch, post, web,
 };
+use actix_web_metrics::ActixWebMetricsBuilder;
 use log::{error, info};
+use metrics_exporter_prometheus::PrometheusBuilder;
 use minio::s3::{MinioClient, creds::StaticProvider, http::BaseUrl};
 use tokio_postgres::{Client as PostgresClient, NoTls};
 
@@ -171,11 +173,14 @@ async fn catch_main() -> anyhow::Result<()> {
 
     info!("hello");
 
-    info!(
-        "pg host: {}, pg_port: {}",
-        env::var("PG_HOST")?,
-        env::var("PG_PORT")?
-    );
+    PrometheusBuilder::new().install().unwrap();
+
+    info!("install prometheus builder");
+
+    let metrics = ActixWebMetricsBuilder::new().build();
+
+    info!("create metrics");
+
     let (pg_client, pg_connection) = tokio_postgres::connect(
         format!(
             "host={} port={} user={} password={} dbname={}",
@@ -221,6 +226,7 @@ async fn catch_main() -> anyhow::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
+            .wrap(metrics.clone())
             .app_data(web_data_pg.clone())
             .app_data(web_data_minio.clone())
             .service(index)

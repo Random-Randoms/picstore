@@ -22,6 +22,18 @@ services:
     volumes:
       - minio-data:/var/lib/minio/data
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    ports:
+      - '$PROM_PORT:9090'
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=http://localhost:9090'
+
   backend:
     image: randomrandoms/picstore-back
     command: cargo run --release
@@ -30,6 +42,7 @@ services:
     depends_on:
       - postgres
       - minio
+      - prometheus
     environment:
       PG_USER: $PG_USER
       PG_PASSWORD: $PG_PASSWORD
