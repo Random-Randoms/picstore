@@ -4,9 +4,9 @@ services:
     ports: 
       - "$PG_PORT:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: $PG_USER
+      POSTGRES_PASSWORD: $PG_PASSWORD
+      POSTGRES_DB: $PG_DBNAME
     volumes:
       - pg-data:/var/lib/pg/data
   
@@ -31,10 +31,10 @@ services:
       - postgres
       - minio
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: postgres
-      POSTGRES_DB: postgres
+      PG_USER: $PG_USER
+      PG_PASSWORD: $PG_PASSWORD
+      PG_HOST: postgres
+      PG_DBNAME: $PG_DBNAME
       RUST_LOG: info
       PG_PORT: $PG_PORT
       MINIO_API_PORT: $MINIO_API_PORT
