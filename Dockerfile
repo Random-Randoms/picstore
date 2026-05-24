@@ -9,7 +9,3 @@ RUN cargo build --release
 RUN rm -rf ./src
 COPY ./src ./src
 RUN cargo build --release
-
-FROM ubuntu AS runner
-COPY --from=builder /target/release/picstore /picstore
-ENTRYPOINT ["./picstore"]

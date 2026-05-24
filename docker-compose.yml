@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17
     ports: 
-      - "5432:5432"
+      - "$PG_PORT:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -14,7 +14,7 @@ services:
     image: minio/minio
     command: server /var/lib/minio/data --console-address ":9001"
     ports:
-      - "9000:9000"
+      - "$MINIO_API_PORT:9000"
       - "9001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -24,8 +24,9 @@ services:
 
   backend:
     image: randomrandoms/picstore-back
+    command: cargo run --release
     ports: 
-      - "3000:3000"
+      - "$BACKEND_PORT:3000"
     depends_on:
       - postgres
       - minio
@@ -35,6 +36,8 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_DB: postgres
       RUST_LOG: info
+      PG_PORT: $PG_PORT
+      MINIO_API_PORT: $MINIO_API_PORT
 
 volumes:
   pg-data:
