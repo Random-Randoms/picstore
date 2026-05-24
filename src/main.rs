@@ -171,10 +171,19 @@ async fn catch_main() -> anyhow::Result<()> {
 
     info!("hello");
 
+    info!(
+        "pg host: {}, pg_port: {}",
+        env::var("PG_HOST")?,
+        env::var("PG_PORT")?
+    );
     let (pg_client, pg_connection) = tokio_postgres::connect(
         format!(
-            "host=postgres user=postgres password=postgres dbname=postgres port={}",
-            env::var("PG_PORT")?
+            "host={} port={} user={} password={} dbname={}",
+            env::var("PG_HOST")?,
+            env::var("PG_PORT")?,
+            env::var("PG_USER")?,
+            env::var("PG_PASSWORD")?,
+            env::var("PG_DBNAME")?,
         )
         .as_str(),
         NoTls,
